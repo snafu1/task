@@ -1,0 +1,31 @@
+version: "3"
+services:
+  postgres:
+    image: postgres:latest
+    environment:
+      - POSTGRES_PASSWORD=pass1234
+      - POSTGRES_DB=uniqcast
+  nats:
+    image: nats
+  pusher:
+    build: pusher
+    image: uniqcast/pusher
+    environment:
+      - NATS_HOST=nats
+    links:
+      - nats
+    depends_on:
+      - nats
+  puller:
+    build: puller
+    image: uniqcast/puller:latest
+    environment:
+      - NATS_HOST=nats
+      - NATS_PORT=4222
+      - PSQL_HOST=postgres
+    links:
+      - nats
+      - postgres
+    depends_on:
+      - nats
+      - postgres

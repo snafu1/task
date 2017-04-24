@@ -1,0 +1,28 @@
+#!/bin/bash
+
+dc=$(which docker-compose 2>/dev/null)
+[[ $? -ne 0 ]] && echo "[!] docker-compose not found" && exit 1
+
+go=$(which go 2>/dev/null)
+[[ $? -ne 0 ]] && echo "[!] go not found" && exit 1
+
+echo "[*] building pusher ..."
+sleep 1
+pushd pusher >/dev/null 2>&1
+${go} build -ldflags "-linkmode external -extldflags -static" -o pusher main.go \
+	|| ( echo "[!] failed to go build pusher" && popd >/dev/null 2>&1 && exit 1 )
+popd >/dev/null 2>&1
+
+echo "[*] building docker images..."
+sleep 1
+${dc} build
+
+echo "[*] running docker compose..."
+sleep 1
+${dc} rm -f
+${dc} scale puller=3
+${dc} up
+
+echo "[*] removing containers ..."
+sleep 1
+${dc} rm -f

@@ -1,0 +1,35 @@
+#!/usr/bin/env node
+
+
+process.env.NATS_HOST ? nats_host = process.env.NATS_HOST : nats_host = '127.0.0.1';                             
+process.env.NATS_PORT ? nats_port = process.env.NATS_PORT : nats_port = '4222';                                   
+process.env.NATS_SUB ? nats_sub = process.env.NATS_SUB : nats_sub = 'content';                       
+process.env.NATS_QUEUE ? nats_queue = process.env.NATS_QUEUE : nats_queue = 'add';                       
+
+var db = require("./db.js");
+
+var nats = require ('nats').connect({ uri:'nats://' + nats_host + ':' + nats_port });
+
+nats.on('error', function(e) {
+  console.log('failed to connect to nats server ' + nats.options.url + ' ' + e);
+});
+
+nats.on('connect', function(e) {
+	console.log('sucesfully connected to ' + nats.options.url);
+});
+
+nats.on('close', function() {
+  console.log('nats connection closed');
+  process.exit(0);
+});
+
+
+nats.subscribe(nats_sub, {'queue': nats_queue}, function(msg) {
+	var c = JSON.parse(msg)
+	console.log('new received received id:' + c.id + ' content_uid:' + c.content_uid);
+
+	if (Object.keys(c).length !== 0) {
+		db.saveContent(c, 2);
+	}
+});
+
